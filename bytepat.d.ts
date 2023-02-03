@@ -11,6 +11,10 @@ type ByteValue =
   | number[]
   | bigint[];
 
+interface ByteValuesArray extends Array<ByteValue> {
+  fields?: Record<string, ByteValue>
+}
+
 declare function bytes(
   strings: TemplateStringsArray,
   ...values: any[]
@@ -22,11 +26,11 @@ declare function readBytesFrom(
   pat: BytePat[],
   view: DataView,
   offset: number,
-): ByteValue[];
+): ByteValuesArray;
 
 declare function writeBytesInto(
   pat: BytePat[],
-  bytes: ByteValue,
+  bytes: ByteValuesArray,
   view: DataView,
   offset: number,
 ): number;

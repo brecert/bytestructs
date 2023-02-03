@@ -10,15 +10,16 @@ const
   DEBUG = true
 
 const
-  TOKENS = /(le|be)|(?:([fsu])(8|16|32|64))|(\d+)|(\s+)|(.)/g
+  TOKENS = /(le|be)|(?:([fsu])(8|16|32|64))|(\d+)|(\w+):|(\s+)|(.)/g
 
 const
   TokenEndianness = 1,
   TokenPartTypeName = 2,
   TokenPartTypeSize = 3,
   TokenNum = 4,
-  TokenIgnore = 5,
-  TokenSymbol = 6
+  TokenLabel = 5,
+  TokenIgnore = 6,
+  TokenSymbol = 7
 
 const
   ModeTypes = 0,
@@ -41,13 +42,22 @@ export function bytes(strings, ...values) {
   let mode = ModeTypes
   let littleEndian
   let parts = []
+  let label
 
   const handleMode = (value, token) => {
     ({
       [ModeTypes]: () => {
-        if (DEBUG && !token) throw new Error(`Invalid interpolation for ${value}`)
-        if (DEBUG && littleEndian == null && !token[TokenEndianness])
-          throw new Error(`Pattern much start by declaring endianness with 'le' or 'be'`)
+        if (DEBUG) {
+          if (!token) {
+            throw new Error(`Invalid interpolation for ${value}`)
+          }
+          if (littleEndian == null && !token[TokenEndianness]) {
+            throw new Error(`Pattern much start by declaring endianness with 'le' or 'be'`)
+          }
+          if (label != null && !token[TokenPartTypeName]) {
+            throw new Error(`Label requires a type after it`)
+          }
+        }
 
         if (token[TokenEndianness]) {
           littleEndian = token[TokenEndianness] === 'le'
@@ -55,7 +65,14 @@ export function bytes(strings, ...values) {
           let name = token[TokenPartTypeName]
           let size = token[TokenPartTypeSize]
 
-          parts.push({ name, size, littleEndian })
+          let part = { name, size, littleEndian }
+          if (label != null) {
+            part.label = label
+            label = undefined
+          }
+          parts.push(part)
+        } else if (token[TokenLabel]) {
+          label = token[TokenLabel]
         } else if (token[TokenSymbol] === '*') {
           mode = ModeRepeat
         } else {
@@ -101,10 +118,12 @@ export function sizeOf(pat) {
   return totalSize
 }
 
+// todo: clean
 export function readBytesFrom(pat, view, offset) {
   let pos = offset
   let output = []
-  for (const { name, size, littleEndian, repeat } of pat) {
+  for (let i = 0; i < pat.length; i++) {
+    const { name, size, littleEndian, repeat, label } = pat[i]
     let fullName = FullName[name]
     let byteSize = ByteSizes[size]
 
@@ -112,14 +131,23 @@ export function readBytesFrom(pat, view, offset) {
       fullName = `Big${fullName}`
     }
 
-    let readData = view[`get${fullName}${size}`].bind(view)
+    if (label) output.fields ??= {}
+
+    // having labels directly assign to the array seems like it could be a source of issues
+    // keeping for now out of convenience
+    const readData = view[`get${fullName}${size}`].bind(view)
     if (repeat) {
-      for (let i = 0; i < repeat; i++) {
-        output.push(readData(pos, littleEndian))
+      if (label) output.fields[label] = []
+      for (let j = 0; j < repeat; j++) {
+        const data = readData(pos, littleEndian)
+        output.push(data)
+        if (label) output.fields[label][j] = data
         pos += byteSize
       }
     } else {
-      output.push(readData(pos, littleEndian))
+      const data = output[i] = readData(pos, littleEndian)
+      if (label) output.fields[label] = data
+      pos += byteSize
     }
   }
   return output
@@ -154,6 +182,7 @@ export function writeBytesInto(pat, bytes, view, offset) {
       }
     } else {
       writeData(pos, bytes[bytePos], littleEndian)
+      pos += byteSize
       bytePos += 1
     }
   }
