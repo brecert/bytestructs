@@ -15,10 +15,11 @@ Deno.test("basic reading and writing with labels", () => {
   const buf = new ArrayBuffer(32);
   const view = new DataView(buf);
 
-  const pat = bytes`be x:u8 y:u8 z:u8`;
-  writeBytesInto(pat, [1, 2, 3], view, 0);
+  const VertexInfo = bytes`be x:u8 y:u32 z:u8 uv:u8*2`;
 
-  const read = readBytesFrom(pat, view, 0);
+  writeBytesInto(VertexInfo, [1, 2, 3, 4, 5], view, 0);
 
-  assertEquals(read.fields?.x, 1);
+  const read = readBytesFrom(VertexInfo, view, 0);
+
+  assertEquals(read.fields, { x: 1, y: 2, z: 3, uv: [4, 5] });
 });

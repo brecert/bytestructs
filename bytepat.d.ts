@@ -30,7 +30,7 @@ declare function readBytesFrom(
 
 declare function writeBytesInto(
   pat: BytePat[],
-  bytes: ByteValuesArray,
+  bytes: ByteValue[],
   view: DataView,
   offset: number,
 ): number;
