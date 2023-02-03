@@ -1,5 +1,5 @@
 import { assertEquals } from "https://deno.land/std@0.174.0/testing/asserts.ts";
-import { bytes, readBytesFrom, sizeOf, writeBytesInto } from "./bytepat.js";
+import { bytes, readBytesFrom, sizeOf, writeBytesInto } from "./bytestruct.js";
 
 Deno.test("basic reading and writing", () => {
   const buf = new ArrayBuffer(50);

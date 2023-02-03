@@ -1,4 +1,4 @@
-interface BytePat {
+interface ByteStructField {
   name: "f" | "s" | "u";
   size: number;
   littleEndian: boolean;
@@ -12,27 +12,34 @@ type ByteValue =
   | bigint[];
 
 interface ByteValuesArray extends Array<ByteValue> {
-  fields?: Record<string, ByteValue>
+  fields?: Record<string, ByteValue>;
 }
 
 declare function bytes(
   strings: TemplateStringsArray,
   ...values: any[]
-): BytePat[];
+): ByteStructField[];
 
-declare function sizeOf(pat: BytePat[]): number;
+declare function sizeOf(pat: ByteStructField[]): number;
 
 declare function readBytesFrom(
-  pat: BytePat[],
+  pat: ByteStructField[],
   view: DataView,
   offset: number,
 ): ByteValuesArray;
 
 declare function writeBytesInto(
-  pat: BytePat[],
+  pat: ByteStructField[],
   bytes: ByteValue[],
   view: DataView,
   offset: number,
 ): number;
 
-export { BytePat, bytes, ByteValue, readBytesFrom, sizeOf, writeBytesInto };
+export {
+  bytes,
+  ByteStructField,
+  ByteValue,
+  readBytesFrom,
+  sizeOf,
+  writeBytesInto,
+};
