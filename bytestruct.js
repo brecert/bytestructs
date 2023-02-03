@@ -1,4 +1,4 @@
-/// <reference types="./bytepat.d.ts" />
+/// <reference types="./bytestruct.d.ts" />
 
 // types
 // f32, f64
