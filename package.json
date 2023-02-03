@@ -1,0 +1,34 @@
+{
+  "type": "module",
+  "name": "bytestructs",
+  "version": "0.1.0",
+  "description": "define byte structures quickly and easily",
+  "types": "bytestruct.d.ts",
+  "main": "bytestruct.js",
+  "module": "bytestruct.js",
+  "browser": "bytestruct.js",
+  "publishConfig": {
+    "access": "public",
+    "module": "dist/bytestruct.min.js",
+    "browser": "dist/bytestruct.min.js"
+  },
+  "scripts": {
+    "build": "swc ./bytestruct.js -o dist/bytestruct.min.js"
+  },
+  "repository": "brecert/bytestructs",
+  "keywords": [
+    "tagged template",
+    "bytes",
+    "struct",
+    "pack",
+    "unpack",
+    "data",
+    "dsl"
+  ],
+  "author": "bree <me@bree.dev>",
+  "license": "AGPL-3.0-only",
+  "devDependencies": {
+    "@swc/cli": "^0.1.59",
+    "@swc/core": "^1.3.29"
+  }
+}

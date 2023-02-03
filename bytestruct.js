@@ -7,9 +7,6 @@
 // byte, pad
 
 const
-  DEBUG = true
-
-const
   TOKENS = /(le|be)|(?:([fsu])(8|16|32|64))|(\d+)|(\w+):|(\s+)|(.)/g
 
 const
