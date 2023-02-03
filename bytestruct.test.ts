@@ -5,10 +5,10 @@ Deno.test("basic reading and writing", () => {
   const buf = new ArrayBuffer(50);
   const view = new DataView(buf);
 
-  const pat = bytes`le f32*3`;
-  assertEquals(sizeOf(pat), 12);
-  assertEquals(writeBytesInto(pat, [1, 2, 3], view, 0), 12);
-  assertEquals(readBytesFrom(pat, view, 0), [1, 2, 3]);
+  const fields = bytes`le f32*3`;
+  assertEquals(sizeOf(fields), 12);
+  assertEquals(writeBytesInto(fields, [1, 2, 3], view, 0), 12);
+  assertEquals(readBytesFrom(fields, view, 0), [1, 2, 3]);
 });
 
 Deno.test("basic reading and writing with labels", () => {

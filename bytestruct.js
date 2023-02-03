@@ -105,22 +105,22 @@ export function bytes(strings, ...values) {
   return parts
 }
 
-export function sizeOf(pat) {
+export function sizeOf(fields) {
   let totalSize = 0
-  for (const part of pat) {
-    let byteSize = ByteSizes[part.size]
-    if (part.repeat) byteSize *= part.repeat
+  for (const field of fields) {
+    let byteSize = ByteSizes[field.size]
+    if (field.repeat) byteSize *= field.repeat
     totalSize += byteSize
   }
   return totalSize
 }
 
 // todo: clean
-export function readBytesFrom(pat, view, offset) {
+export function readBytesFrom(fields, view, offset) {
   let pos = offset
   let output = []
-  for (let i = 0; i < pat.length; i++) {
-    const { name, size, littleEndian, repeat, label } = pat[i]
+  for (let i = 0; i < fields.length; i++) {
+    const { name, size, littleEndian, repeat, label } = fields[i]
     let fullName = FullName[name]
     let byteSize = ByteSizes[size]
 
@@ -150,19 +150,19 @@ export function readBytesFrom(pat, view, offset) {
   return output
 }
 
-export function writeBytesInto(pat, bytes, view, offset) {
+export function writeBytesInto(fields, bytes, view, offset) {
   let pos = offset
 
   if (DEBUG) {
-    let entrySize = pat.reduce((prev, type) => prev + (type.repeat ?? 1), 0)
+    let entrySize = fields.reduce((prev, type) => prev + (type.repeat ?? 1), 0)
     if (entrySize !== bytes.length) {
       throw new Error(`Byte count and total pat byte count does not match.`)
     }
   }
 
   let bytePos = 0
-  for (let i = 0; i < pat.length; i++) {
-    const { name, size, littleEndian, repeat } = pat[i]
+  for (let i = 0; i < fields.length; i++) {
+    const { name, size, littleEndian, repeat } = fields[i]
     let fullName = FullName[name]
     let byteSize = ByteSizes[size]
 
