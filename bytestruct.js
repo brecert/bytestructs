@@ -5,6 +5,10 @@
 // s8, s16, s32, s64
 // u8, u16, u32, u64
 // byte, pad
+// const 
+
+const
+  DEBUG = globalThis.DEBUG ?? true
 
 const
   TOKENS = /(le|be)|(?:([fsu])(8|16|32|64))|(\d+)|(\w+):|(\s+)|(.)/g
@@ -81,7 +85,7 @@ export function bytes(strings, ...values) {
 
         if (token[TokenNum]) {
           const times = parseInt(token[TokenNum])
-          parts.at(-1)['repeat'] = times
+          parts.at(-1).repeat = times
           mode = ModeTypes
         } else {
           if (DEBUG) throw new Error(`Invalid token '${token[0]}' for ModeRepeat`)
