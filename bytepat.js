@@ -160,14 +160,3 @@ export function writeBytesInto(pat, bytes, view, offset) {
 
   return pos - offset
 }
-
-const buf = new ArrayBuffer(50)
-const view = new DataView(buf)
-
-const pat = bytes`le f32*3`
-console.log(
-  pat,
-  sizeOf(pat),
-  writeBytesInto(pat, [1, 2, 3], view, 0),
-  readBytesFrom(pat, view, 0)
-)
