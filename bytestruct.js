@@ -92,10 +92,11 @@ export function bytes(strings, ...values) {
         }
       },
       [ModeRepeat]: () => {
-        if (DEBUG && !token) throw new Error(`Invalid interpolation for ${value}`)
+        if (DEBUG && !token && typeof value !== 'number')
+          throw new Error(`Invalid interpolation for ${value}`)
 
-        if (token[TokenNum]) {
-          const times = parseInt(token[TokenNum])
+        if (!token || token[TokenNum]) {
+          const times = value ?? parseInt(token[TokenNum])
           parts.at(-1).repeat = times
           mode = ModeTypes
         } else {
@@ -129,9 +130,6 @@ export function sizeOf(fields) {
   }
   return totalSize
 }
-
-// StructName.fromBytes
-// StructName.intoBytes
 
 export function writeStructInto(view, fields, struct, offset) {
   let pos = offset

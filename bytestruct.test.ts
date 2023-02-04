@@ -48,7 +48,7 @@ Deno.test("writeBytesInto", () => {
 });
 
 Deno.test("writeStructInto", () => {
-  const struct = bytes`le x:f32 y:f32 be z:f32 uv:u8*2`;
+  const struct = bytes`le x:f32 y:f32 be z:f32 uv:u8*${2}`;
 
   const buffer = new ArrayBuffer(sizeOf(struct));
   const view = new DataView(buffer);
