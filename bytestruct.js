@@ -38,7 +38,8 @@ const ByteSizes = {
 const FullName = {
   f: 'Float',
   s: 'Int',
-  u: 'Uint'
+  u: 'Uint',
+  bytes: 'Uint'
 }
 
 export function bytes(strings, ...values) {
@@ -144,17 +145,24 @@ export function writeStructInto(view, fields, struct, offset) {
     }
     const value = struct[label]
 
+    // todo: simplify
     if (Array.isArray(type)) {
-      pos += writeStructInto(view, type, value, pos)
+      if (repeat) {
+        for (let i = 0; i < repeat; i++) {
+          pos += writeStructInto(view, type, value[i], pos)
+        }
+      } else {
+        pos += writeStructInto(view, type, value, pos)
+      }
       continue
     }
 
-    const byteSize = ByteSizes[size]
+    const byteSize = ByteSizes[size ?? type]
     const fullName = (type === 's' || type === 'u') && size === 64
       ? `Big${FullName[type]}`
       : FullName[type]
 
-    const writeData = view[`set${fullName}${size}`].bind(view)
+    const writeData = view[`set${fullName}${type === 'bytes' ? 8 : size}`].bind(view)
     if (repeat) {
       for (let i = 0; i < repeat; i++) {
         writeData(pos, value[i], littleEndian)
@@ -165,7 +173,6 @@ export function writeStructInto(view, fields, struct, offset) {
       pos += byteSize
     }
   }
-
   return pos - offset
 }
 
@@ -186,9 +193,20 @@ export function readStructFrom(view, fields, offset) {
       continue
     }
 
+    // todo: simplify
     if (Array.isArray(type)) {
-      struct[label] = readStructFrom(view, type, pos)
-      pos += sizeOf(type)
+      const byteSize = sizeOf(type)
+      if (repeat) {
+        const structs = []
+        for (let i = 0; i < repeat; i++) {
+          structs[i] = readStructFrom(view, type, pos)
+          pos += byteSize
+        }
+        struct[label] = structs
+      } else {
+        struct[label] = readStructFrom(view, type, pos)
+        pos += byteSize
+      }
       continue
     }
 
