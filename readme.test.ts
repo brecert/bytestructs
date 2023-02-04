@@ -12,7 +12,7 @@ const Vec3f = bytes`be f64*3`;
 const Position = bytes`be x:f64 y:f64 z:f64`;
 const Triangle = bytes`be vertices:${Position}*3`;
 
-const data = new Float64Array(sizeOf(Position));
+const data = new Uint8Array(sizeOf(Triangle));
 const view = new DataView(data.buffer);
 
 assertEquals(
