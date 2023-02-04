@@ -23,3 +23,19 @@ Deno.test("basic reading and writing with labels", () => {
 
   assertEquals(read.fields, { x: 1, y: 2, z: 3, uv: [4, 5] });
 });
+
+Deno.test("byte type", () => {
+  
+  const ModelInfo = bytes`be header:byte*8 vertexCount:u32`;
+  
+  const buf = new ArrayBuffer(sizeOf(ModelInfo));
+  const view = new DataView(buf);
+
+  writeBytesInto(ModelInfo, [1, 2, 3, 4, 5, 6, 7, 8, 10], view, 0);
+
+  assertEquals(new Uint8Array(buf), new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 0, 0, 0, 10]))
+
+  const read = readBytesFrom(ModelInfo, view, 0);
+
+  assertEquals(read.fields, { header: new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]), vertexCount: 10 });
+});

@@ -9,7 +9,8 @@ type ByteValue =
   | number
   | bigint
   | number[]
-  | bigint[];
+  | bigint[]
+  | Uint8Array;
 
 interface ByteValuesArray extends Array<ByteValue> {
   fields?: Record<string, ByteValue>;

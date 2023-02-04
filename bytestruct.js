@@ -11,16 +11,17 @@ const
   DEBUG = globalThis.__DEBUG__ ?? true
 
 const
-  TOKENS = /(le|be)|(?:([fsu])(8|16|32|64))|(\d+)|(\w+):|(\s+)|(.)/g
+  TOKENS = /(le|be)|(byte)|(?:([fsu])(8|16|32|64))|(\d+)|(\w+):|(\s+)|(.)/g
 
 const
   TokenEndianness = 1,
-  TokenPartTypeName = 2,
-  TokenPartTypeSize = 3,
-  TokenNum = 4,
-  TokenLabel = 5,
-  TokenIgnore = 6,
-  TokenSymbol = 7
+  TokenByte = 2,
+  TokenPartTypeName = 3,
+  TokenPartTypeSize = 4,
+  TokenNum = 5,
+  TokenLabel = 6,
+  TokenIgnore = 7,
+  TokenSymbol = 8
 
 const
   ModeTypes = 0,
@@ -30,7 +31,8 @@ const ByteSizes = {
   8: 1,
   16: 2,
   32: 4,
-  64: 8
+  64: 8,
+  bytes: 1
 }
 
 const FullName = {
@@ -55,14 +57,23 @@ export function bytes(strings, ...values) {
           if (littleEndian == null && !token[TokenEndianness]) {
             throw new Error(`Pattern much start by declaring endianness with 'le' or 'be'`)
           }
-          if (label != null && !token[TokenPartTypeName]) {
+          if (label != null && !token[TokenPartTypeName] && !token[TokenByte]) {
             throw new Error(`Label requires a type after it`)
           }
         }
 
         if (token[TokenEndianness]) {
           littleEndian = token[TokenEndianness] === 'le'
-        } else if (token[TokenPartTypeName]) {
+        }
+        else if (token[TokenByte]) {
+          let part = { name: 'bytes' }
+          if (label != null) {
+            part.label = label
+            label = undefined
+          }
+          parts.push(part)
+        }
+        else if (token[TokenPartTypeName]) {
           let name = token[TokenPartTypeName]
           let size = token[TokenPartTypeSize]
 
@@ -112,7 +123,7 @@ export function bytes(strings, ...values) {
 export function sizeOf(fields) {
   let totalSize = 0
   for (const field of fields) {
-    let byteSize = ByteSizes[field.size]
+    let byteSize = ByteSizes[field.size ?? field.name]
     if (field.repeat) byteSize *= field.repeat
     totalSize += byteSize
   }
@@ -133,6 +144,17 @@ export function readBytesFrom(fields, view, offset) {
     }
 
     if (label) output.fields ??= {}
+
+    // TODO: not sure how I feel about the `byte` feature, it feel like a feature to be a feature when good-enough alternatives exist even if they're not perfect
+    if (name === 'bytes') {
+      const size = repeat ?? 1
+      const uint8 = new Uint8Array(view.buffer)
+      const slice = uint8.slice(pos, pos + size)
+      output.push.apply(output, slice)
+      if (label) output.fields[label] = slice
+      pos += size
+      continue
+    }
 
     // having labels directly assign to the array seems like it could be a source of issues
     // keeping for now out of convenience
@@ -169,6 +191,17 @@ export function writeBytesInto(fields, bytes, view, offset) {
     const { name, size, littleEndian, repeat } = fields[i]
     let fullName = FullName[name]
     let byteSize = ByteSizes[size]
+
+    if (name === 'bytes') {
+      const size = repeat ?? 1
+      const data = bytes.slice(bytePos, bytePos + size)
+      // todo: check if more specialized init is faster
+      const uint8 = new Uint8Array(view.buffer);
+      uint8.set(data, pos)
+      pos += size
+      bytePos += size
+      continue
+    }
 
     if (name === 's' || name === 'u' && size === 64) {
       fullName = `Big${fullName}`
