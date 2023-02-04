@@ -1,4 +1,4 @@
-interface ByteStructField {
+interface ByteStructField<T = unknown> {
   name: "f" | "s" | "u";
   size: number;
   littleEndian: boolean;
@@ -13,14 +13,10 @@ type ByteValue =
   | Uint8Array
   | { [key: string]: ByteValue };
 
-interface ByteValuesArray extends Array<ByteValue> {
-  fields?: Record<string, ByteValue>;
-}
-
-declare function bytes(
+declare function bytes<T = Record<string, ByteValue>>(
   strings: TemplateStringsArray,
   ...values: any[]
-): ByteStructField[];
+): ByteStructField<T>[];
 
 declare function sizeOf(fields: ByteStructField[]): number;
 
@@ -28,27 +24,27 @@ declare function readBytesFrom(
   view: DataView,
   fields: ByteStructField[],
   offset: number,
-): ByteValuesArray;
+): ArrayLike<number | bigint>;
 
 declare function writeBytesInto(
   view: DataView,
   fields: ByteStructField[],
-  bytes: ByteValue[],
+  bytes: ArrayLike<number | bigint>,
   offset: number,
 ): number;
 
-declare function writeStructInto(
+declare function writeStructInto<T>(
   view: DataView,
-  fields: ByteStructField[],
-  struct: Record<string, ByteValue>,
+  fields: ByteStructField<T>[],
+  struct: T,
   offset: number,
 ): number;
 
-declare function readStructFrom(
+declare function readStructFrom<T>(
   view: DataView,
-  fields: ByteStructField[],
+  fields: ByteStructField<T>[],
   offset: number,
-): Record<string, ByteValue>;
+): T;
 
 export {
   bytes,
