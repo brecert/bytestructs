@@ -4,11 +4,11 @@
 // f32, f64
 // s8, s16, s32, s64
 // u8, u16, u32, u64
-// byte, pad
-// const 
+// todo?: byte (u8)?, pad (u8)?
 
 const
-  DEBUG = globalThis.DEBUG ?? true
+  // globalThis.__DEBUG__ will be replaced with false and optimized away at build time.
+  DEBUG = globalThis.__DEBUG__ ?? true
 
 const
   TOKENS = /(le|be)|(?:([fsu])(8|16|32|64))|(\d+)|(\w+):|(\s+)|(.)/g

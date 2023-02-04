@@ -10,7 +10,7 @@
         "optimizer": {
           "globals": {
             "vars": {
-              "globalThis.DEBUG": "false"
+              "globalThis.__DEBUG__": "false"
             }
           }
         }
