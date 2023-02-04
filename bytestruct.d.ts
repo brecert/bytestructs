@@ -8,10 +8,9 @@ interface ByteStructField<T = unknown> {
 type ByteValue =
   | number
   | bigint
-  | number[]
-  | bigint[]
   | Uint8Array
-  | { [key: string]: ByteValue };
+  | { [key: string]: ByteValue }
+  | ByteValue[];
 
 declare function bytes<T = Record<string, ByteValue>>(
   strings: TemplateStringsArray,
