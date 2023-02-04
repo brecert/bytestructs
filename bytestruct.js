@@ -51,29 +51,30 @@ export function bytes(strings, ...values) {
     ({
       [ModeTypes]: () => {
         if (DEBUG) {
-          if (!token) {
+          if (!token && !Array.isArray(value)) {
             throw new Error(`Invalid interpolation for ${value}`)
           }
           if (littleEndian == null && !token[TokenEndianness]) {
             throw new Error(`Pattern much start by declaring endianness with 'le' or 'be'`)
           }
-          if (label != null && !token[TokenPartTypeName] && !token[TokenByte]) {
-            throw new Error(`Label requires a type after it`)
+          if (label != null && !Array.isArray(value) && !token[TokenPartTypeName] && !token[TokenByte]) {
+            throw new Error(`Label '${label}' requires a type after it`)
           }
         }
 
-        if (token[TokenEndianness]) {
+        if (Array.isArray(value)) {
+          parts.push({ name: value, label })
+          label = undefined
+        } else if (token[TokenEndianness]) {
           littleEndian = token[TokenEndianness] === 'le'
-        }
-        else if (token[TokenByte]) {
+        } else if (token[TokenByte]) {
           let part = { name: 'bytes' }
           if (label != null) {
             part.label = label
             label = undefined
           }
           parts.push(part)
-        }
-        else if (token[TokenPartTypeName]) {
+        } else if (token[TokenPartTypeName]) {
           let name = token[TokenPartTypeName]
           let size = token[TokenPartTypeSize]
 
@@ -124,7 +125,10 @@ export function bytes(strings, ...values) {
 export function sizeOf(fields) {
   let totalSize = 0
   for (const field of fields) {
-    let byteSize = ByteSizes[field.size ?? field.name]
+    let byteSize = Array.isArray(field.name)
+      ? sizeOf(field.name)
+      : ByteSizes[field.size ?? field.name]
+
     if (field.repeat) byteSize *= field.repeat
     totalSize += byteSize
   }
@@ -133,17 +137,22 @@ export function sizeOf(fields) {
 
 export function writeStructInto(view, fields, struct, offset) {
   let pos = offset
-  for (const { name, size, littleEndian, repeat, label } of fields) {
+  for (const { name: type, size, littleEndian, repeat, label } of fields) {
     if (DEBUG && !label) {
       // we do not continue here because we do not want a difference in behavior between debug and final builds
       console.warn(`You're trying to write a struct that has unnamed fields. Unnamed fields may not be written, please name them or use 'writeBytesInto' instead if this is not the intended behavior.`)
     }
     const value = struct[label]
 
+    if (Array.isArray(type)) {
+      pos += writeStructInto(view, type, value, pos)
+      continue
+    }
+
     const byteSize = ByteSizes[size]
-    const fullName = (name === 's' || name === 'u') && size === 64
-      ? `Big${FullName[name]}`
-      : FullName[name]
+    const fullName = (type === 's' || type === 'u') && size === 64
+      ? `Big${FullName[type]}`
+      : FullName[type]
 
     const writeData = view[`set${fullName}${size}`].bind(view)
     if (repeat) {
@@ -157,7 +166,7 @@ export function writeStructInto(view, fields, struct, offset) {
     }
   }
 
-  return offset - pos
+  return pos - offset
 }
 
 export function readStructFrom(view, fields, offset) {
@@ -165,8 +174,8 @@ export function readStructFrom(view, fields, offset) {
   let pos = offset
 
   // todo: test performance
-  for (const { name, size, littleEndian, repeat, label } of fields) {
-    const byteSize = ByteSizes[size ?? name]
+  for (const { name: type, size, littleEndian, repeat, label } of fields) {
+    const byteSize = ByteSizes[size ?? type]
 
     if (DEBUG && label in struct) {
       console.warn(`There are duplicate fields for '${label}' in ${struct}`)
@@ -177,15 +186,21 @@ export function readStructFrom(view, fields, offset) {
       continue
     }
 
-    if (name === 'bytes') {
+    if (Array.isArray(type)) {
+      struct[label] = readStructFrom(view, type, pos)
+      pos += sizeOf(type)
+      continue
+    }
+
+    if (type === 'bytes') {
       const size = repeat ?? 1
       const uint8 = new Uint8Array(view.buffer)
       struct[label] = uint8.slice(pos, pos + size)
       pos += size
     } else {
-      const fullName = (name === 's' || name === 'u') && size === 64
-        ? `Big${FullName[name]}`
-        : FullName[name]
+      const fullName = (type === 's' || type === 'u') && size === 64
+        ? `Big${FullName[type]}`
+        : FullName[type]
 
       const readData = view[`get${fullName}${size}`].bind(view)
       if (repeat) {

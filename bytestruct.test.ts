@@ -79,3 +79,57 @@ Deno.test("readStructFrom", () => {
     },
   );
 });
+
+Deno.test("sizeOf nested", () => {
+  const struct1 = bytes`be byte*3`;
+  const struct2 = bytes`be byte*3 x:u8 y:u8 z:u8 ${struct1} u:u8 v:u8`;
+  assertEquals(sizeOf(struct2), 3 + 1 + 1 + 1 + 3 + 1 + 1);
+});
+
+Deno.test("readStructFrom nested", () => {
+  const Vector3f = bytes`be x:f64 y:f64 z:f64`;
+  const Texcoord = bytes`be u:u8 v:u8`;
+  const Vertex =
+    bytes`be position:${Vector3f} normal:${Vector3f} uv:${Texcoord}`;
+
+  const buffer = new ArrayBuffer(sizeOf(Vertex));
+  const view = new DataView(buffer);
+
+  let pos = 0;
+  view.setFloat64(pos, 1.1);
+  view.setFloat64(pos += 8, 2.2);
+  view.setFloat64(pos += 8, 3.3);
+  view.setFloat64(pos += 8, 4.4);
+  view.setFloat64(pos += 8, 5.5);
+  view.setFloat64(pos += 8, 6.6);
+  view.setUint8(pos += 8, 7);
+  view.setUint8(pos += 1, 8);
+
+  assertEquals(
+    readStructFrom(view, Vertex, 0),
+    {
+      position: { x: 1.1, y: 2.2, z: 3.3 },
+      normal: { x: 4.4, y: 5.5, z: 6.6 },
+      uv: { u: 7, v: 8 },
+    },
+  );
+});
+
+Deno.test("writeStructInto nested", () => {
+  const Vector3f = bytes`be x:f64 y:f64 z:f64`;
+  const Texcoord = bytes`be u:u8 v:u8`;
+  const Vertex =
+    bytes`be position:${Vector3f} normal:${Vector3f} uv:${Texcoord}`;
+
+  const buffer = new ArrayBuffer(sizeOf(Vertex));
+  const view = new DataView(buffer);
+
+  const data = {
+    position: { x: 1.1, y: 2.2, z: 3.3 },
+    normal: { x: 4.4, y: 5.5, z: 6.6 },
+    uv: { u: 7, v: 8 },
+  };
+
+  writeStructInto(view, Vertex, data, 0);
+  assertEquals(readStructFrom(view, Vertex, 0), data);
+});

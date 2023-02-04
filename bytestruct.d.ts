@@ -10,7 +10,8 @@ type ByteValue =
   | bigint
   | number[]
   | bigint[]
-  | Uint8Array;
+  | Uint8Array
+  | { [key: string]: ByteValue };
 
 interface ByteValuesArray extends Array<ByteValue> {
   fields?: Record<string, ByteValue>;
@@ -57,5 +58,5 @@ export {
   readStructFrom,
   sizeOf,
   writeBytesInto,
-  writeStructInto,
-};
+  writeStructInto
+}
