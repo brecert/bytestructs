@@ -130,53 +130,123 @@ export function sizeOf(fields) {
   return totalSize
 }
 
+// StructName.fromBytes
+// StructName.intoBytes
+
+export function writeStructInto(view, fields, struct, offset) {
+  let pos = offset
+  for (const { name, size, littleEndian, repeat, label } of fields) {
+    if (DEBUG && !label) {
+      // we do not continue here because we do not want a difference in behavior between debug and final builds
+      console.warn(`You're trying to write a struct that has unnamed fields. Unnamed fields may not be written, please name them or use 'writeBytesInto' instead if this is not the intended behavior.`)
+    }
+    const value = struct[label]
+
+    const byteSize = ByteSizes[size]
+    const fullName = (name === 's' || name === 'u') && size === 64
+      ? `Big${FullName[name]}`
+      : FullName[name]
+
+    const writeData = view[`set${fullName}${size}`].bind(view)
+    if (repeat) {
+      for (let i = 0; i < repeat; i++) {
+        writeData(pos, value[i], littleEndian)
+        pos += byteSize
+      }
+    } else {
+      writeData(pos, value, littleEndian)
+      pos += byteSize
+    }
+  }
+
+  return offset - pos
+}
+
+export function readStructFrom(view, fields, offset) {
+  const struct = {}
+  let pos = offset
+
+  // todo: test performance
+  for (const { name, size, littleEndian, repeat, label } of fields) {
+    const byteSize = ByteSizes[size ?? name]
+
+    if (DEBUG && label in struct) {
+      console.warn(`There are duplicate fields for '${label}' in ${struct}`)
+    }
+
+    if (!label) {
+      pos += byteSize
+      continue
+    }
+
+    if (name === 'bytes') {
+      const size = repeat ?? 1
+      const uint8 = new Uint8Array(view.buffer)
+      struct[label] = uint8.slice(pos, pos + size)
+      pos += size
+    } else {
+      const fullName = (name === 's' || name === 'u') && size === 64
+        ? `Big${FullName[name]}`
+        : FullName[name]
+
+      const readData = view[`get${fullName}${size}`].bind(view)
+      if (repeat) {
+        const bytes = []
+        for (let j = 0; j < repeat; j++) {
+          bytes[j] = readData(pos, littleEndian)
+          pos += byteSize
+        }
+        struct[label] = bytes
+      } else {
+        struct[label] = readData(pos, littleEndian)
+        pos += byteSize
+      }
+    }
+  }
+
+  return struct
+}
+
 // todo: clean
-export function readBytesFrom(fields, view, offset) {
+export function readBytesFrom(view, fields, offset) {
   let pos = offset
   let output = []
   for (let i = 0; i < fields.length; i++) {
-    const { name, size, littleEndian, repeat, label } = fields[i]
-    let fullName = FullName[name]
-    let byteSize = ByteSizes[size]
+    const { name, size, littleEndian, repeat } = fields[i]
 
-    if (name === 's' || name === 'u' && size === 64) {
-      fullName = `Big${fullName}`
-    }
-
-    if (label) output.fields ??= {}
-
-    // TODO: not sure how I feel about the `byte` feature, it feel like a feature to be a feature when good-enough alternatives exist even if they're not perfect
+    // TODO: not sure how I feel about the `byte` feature
+    // it feel like a feature to be a feature when 'good-enough' alternatives exist even if they're not perfect
     if (name === 'bytes') {
       const size = repeat ?? 1
       const uint8 = new Uint8Array(view.buffer)
       const slice = uint8.slice(pos, pos + size)
       output.push.apply(output, slice)
-      if (label) output.fields[label] = slice
       pos += size
       continue
     }
 
-    // having labels directly assign to the array seems like it could be a source of issues
-    // keeping for now out of convenience
+    const byteSize = ByteSizes[size]
+    const fullName = (name === 's' || name === 'u') && size === 64
+      ? `Big${FullName[name]}`
+      : FullName[name]
+
     const readData = view[`get${fullName}${size}`].bind(view)
     if (repeat) {
-      if (label) output.fields[label] = []
       for (let j = 0; j < repeat; j++) {
         const data = readData(pos, littleEndian)
         output.push(data)
-        if (label) output.fields[label][j] = data
         pos += byteSize
       }
     } else {
-      const data = output[i] = readData(pos, littleEndian)
-      if (label) output.fields[label] = data
+      const data = readData(pos, littleEndian)
+      output.push(data)
       pos += byteSize
     }
   }
   return output
 }
 
-export function writeBytesInto(fields, bytes, view, offset) {
+export function writeBytesInto(view, fields, bytes, offset) {
   let pos = offset
 
   if (DEBUG) {
@@ -189,8 +259,6 @@ export function writeBytesInto(fields, bytes, view, offset) {
   let bytePos = 0
   for (let i = 0; i < fields.length; i++) {
     const { name, size, littleEndian, repeat } = fields[i]
-    let fullName = FullName[name]
-    let byteSize = ByteSizes[size]
 
     if (name === 'bytes') {
       const size = repeat ?? 1
@@ -203,11 +271,12 @@ export function writeBytesInto(fields, bytes, view, offset) {
       continue
     }
 
-    if (name === 's' || name === 'u' && size === 64) {
-      fullName = `Big${fullName}`
-    }
+    const byteSize = ByteSizes[size]
+    const fullName = (name === 's' || name === 'u') && size === 64
+      ? `Big${FullName[name]}`
+      : FullName[name]
 
-    let writeData = view[`set${fullName}${size}`].bind(view)
+    const writeData = view[`set${fullName}${size}`].bind(view)
     if (repeat) {
       for (let i = 0; i < repeat; i++) {
         writeData(pos, bytes[bytePos], littleEndian)
