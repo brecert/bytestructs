@@ -14,7 +14,7 @@
   },
   "scripts": {
     "build": "swc ./bytestruct.js -o dist/bytestruct.min.js",
-    "build:checksize": "pnpm build && brotli -c ./dist/bytestruct.min.js | wc -c"
+    "build:checksize": "pnpm build && gzip -c ./dist/bytestruct.min.js | wc -c && brotli -c ./dist/bytestruct.min.js | wc -c"
   },
   "repository": "brecert/bytestructs",
   "keywords": [
