@@ -32,14 +32,14 @@ const ByteSizes = {
   16: 2,
   32: 4,
   64: 8,
-  bytes: 1
+  b: 1
 }
 
 const FullName = {
   f: 'Float',
   s: 'Int',
   u: 'Uint',
-  bytes: 'Uint'
+  b: 'Uint'
 }
 
 export function bytes(strings, ...values) {
@@ -48,7 +48,7 @@ export function bytes(strings, ...values) {
   let parts = []
   let label
 
-  const handleMode = (value, token) => {
+  const handleValue = (value, token) => {
     ({
       [ModeTypes]: () => {
         if (DEBUG) {
@@ -69,7 +69,7 @@ export function bytes(strings, ...values) {
         } else if (token[TokenEndianness]) {
           littleEndian = token[TokenEndianness] === 'le'
         } else if (token[TokenByte]) {
-          let part = { name: 'bytes' }
+          let part = { name: 'b' }
           if (label != null) {
             part.label = label
             label = undefined
@@ -114,10 +114,10 @@ export function bytes(strings, ...values) {
     for (const token of tokens) {
       if (token[TokenIgnore]) continue;
 
-      handleMode(undefined, token)
+      handleValue(undefined, token)
     }
 
-    if (i < values.length) handleMode(values[i])
+    if (i < values.length) handleValue(values[i])
   }
 
   return parts
@@ -143,34 +143,27 @@ export function writeStructInto(view, fields, struct, offset) {
       // we do not continue here because we do not want a difference in behavior between debug and final builds
       console.warn(`You're trying to write a struct that has unnamed fields. Unnamed fields may not be written, please name them or use 'writeBytesInto' instead if this is not the intended behavior.`)
     }
-    const value = struct[label]
 
-    // todo: simplify
-    if (Array.isArray(type)) {
-      if (repeat) {
-        for (let i = 0; i < repeat; i++) {
-          pos += writeStructInto(view, type, value[i], pos)
-        }
-      } else {
-        pos += writeStructInto(view, type, value, pos)
-      }
-      continue
-    }
+    // todo: benchmark
+    const write = Array.isArray(type)
+      ? (value) => pos += writeStructInto(view, type, value, pos)
+      : (value) => {
+        const byteSize = ByteSizes[size ?? type]
+        const fullName = (type === 's' || type === 'u') && size === 64
+          ? `Big${FullName[type]}`
+          : FullName[type]
 
-    const byteSize = ByteSizes[size ?? type]
-    const fullName = (type === 's' || type === 'u') && size === 64
-      ? `Big${FullName[type]}`
-      : FullName[type]
-
-    const writeData = view[`set${fullName}${type === 'bytes' ? 8 : size}`].bind(view)
-    if (repeat) {
-      for (let i = 0; i < repeat; i++) {
-        writeData(pos, value[i], littleEndian)
+        view[`set${fullName}${type === 'b' ? 8 : size}`](pos, value, littleEndian)
         pos += byteSize
       }
+
+    const value = struct[label]
+    if (repeat) {
+      for (let i = 0; i < repeat; i++) {
+        write(value[i])
+      }
     } else {
-      writeData(pos, value, littleEndian)
-      pos += byteSize
+      write(value)
     }
   }
   return pos - offset
@@ -210,7 +203,7 @@ export function readStructFrom(view, fields, offset) {
       continue
     }
 
-    if (type === 'bytes') {
+    if (type === 'b') {
       const size = repeat ?? 1
       const uint8 = new Uint8Array(view.buffer)
       struct[label] = uint8.slice(pos, pos + size)
@@ -247,7 +240,7 @@ export function readBytesFrom(view, fields, offset) {
 
     // TODO: not sure how I feel about the `byte` feature
     // it feel like a feature to be a feature when 'good-enough' alternatives exist even if they're not perfect
-    if (name === 'bytes') {
+    if (name === 'b') {
       const size = repeat ?? 1
       const uint8 = new Uint8Array(view.buffer)
       const slice = uint8.slice(pos, pos + size)
@@ -291,7 +284,7 @@ export function writeBytesInto(view, fields, bytes, offset) {
   for (let i = 0; i < fields.length; i++) {
     const { name, size, littleEndian, repeat } = fields[i]
 
-    if (name === 'bytes') {
+    if (name === 'b') {
       const size = repeat ?? 1
       const data = bytes.slice(bytePos, bytePos + size)
       // todo: check if more specialized init is faster
