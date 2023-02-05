@@ -86,11 +86,6 @@ export function bytes(strings, ...values) {
 
       return values
     },
-    bytes(values) {
-      const buffer = new ArrayBuffer(this.byteSize())
-      this.writeBytes(values, buffer)
-      return buffer
-    },
     writeBytes(values, buffer) {
       const view = new DataView(buffer)
       let viewPos = 0

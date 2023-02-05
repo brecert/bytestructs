@@ -1,13 +1,18 @@
 import { assertEquals } from "https://deno.land/std@0.174.0/testing/asserts.ts";
-import { bytes } from "./bytestruct.mini.js";
+import { bytes, ByteStruct, ByteValue } from "./bytestruct.mini.js";
 
+function toBytes(byteStruct: ByteStruct, values: ByteValue[]) {
+  const buffer = new ArrayBuffer(byteStruct.byteSize());
+  byteStruct.writeBytes(values, buffer);
+  return buffer;
+}
 Deno.test("bytes", () => {
   const ty = bytes`be b1 s16 s32`;
 
   assertEquals(ty.byteSize(), 7);
 
   assertEquals(
-    new Uint8Array(ty.bytes([1, 2, 3])),
+    new Uint8Array(toBytes(ty, [1, 2, 3])),
     new Uint8Array([1, 0, 2, 0, 0, 0, 3]),
   );
 
@@ -28,7 +33,7 @@ Deno.test("bytes repeat", () => {
   );
 
   assertEquals(
-    new Uint8Array(ty.bytes(values)),
+    new Uint8Array(toBytes(ty, values)),
     expectedBytes,
   );
 
@@ -47,7 +52,7 @@ Deno.test("bytes byte type", () => {
   const expectedBytes = new Uint8Array([1, 2, 3, 4, 5, 6]);
 
   assertEquals(
-    new Uint8Array(ty.bytes(values)),
+    new Uint8Array(toBytes(ty, values)),
     expectedBytes,
   );
 
@@ -66,7 +71,7 @@ Deno.test("bytes interpolation", () => {
   const expectedBytes = new Uint8Array([1, 2, 3, 4, 5]);
 
   assertEquals(
-    new Uint8Array(ty.bytes(values)),
+    new Uint8Array(toBytes(ty, values)),
     expectedBytes,
   );
 

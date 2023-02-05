@@ -1,10 +1,11 @@
-type ByteValue = number | bigint;
+export type ByteValue = number | bigint;
 
-declare function bytes(strings: TemplateStringsArray, ...values: any): {
+export interface ByteStruct {
   byteSize(): number;
-  bytes(values: ByteValue[]): ArrayBuffer;
   readBytes(buffer: ArrayBuffer): ByteValue[];
-  writeBytes(buffer: ArrayBuffer, values: ByteValue[]): number;
-};
+  writeBytes(values: ByteValue[], buffer: ArrayBuffer): number;
+}
+
+declare function bytes(strings: TemplateStringsArray, ...values: any): ByteStruct
 
 export { bytes };
