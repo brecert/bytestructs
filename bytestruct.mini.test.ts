@@ -6,6 +6,7 @@ function toBytes(byteStruct: ByteStruct, values: ByteValue[]) {
   byteStruct.writeBytes(values, buffer);
   return buffer;
 }
+
 Deno.test("bytes", () => {
   const ty = bytes`be b1 s16 s32`;
 
@@ -50,6 +51,25 @@ Deno.test("bytes byte type", () => {
 
   const values = [1, 2, 3, 4, 5, 6];
   const expectedBytes = new Uint8Array([1, 2, 3, 4, 5, 6]);
+
+  assertEquals(
+    new Uint8Array(toBytes(ty, values)),
+    expectedBytes,
+  );
+
+  assertEquals(
+    ty.readBytes(expectedBytes.buffer),
+    values,
+  );
+});
+
+Deno.test("bytes change endianness", () => {
+  const ty = bytes`be u16 le u16 be u16`;
+
+  assertEquals(ty.byteSize(), 6);
+
+  const values = [1, 2, 3];
+  const expectedBytes = new Uint8Array([0, 1, 2, 0, 0, 3]);
 
   assertEquals(
     new Uint8Array(toBytes(ty, values)),

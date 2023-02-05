@@ -29,7 +29,7 @@ export function bytes(strings, ...values) {
         const typeToken = typeString.match(TOKENS)
 
         if (typeToken[TokenEndianness]) {
-          littleEndian = typeToken[TokenEndianness] === 'le'
+          littleEndian = typeToken[TokenEndianness] === 'l'
         } else {
           fields.push([
             typeToken[TokenTypeName],
