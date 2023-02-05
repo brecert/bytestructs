@@ -59,7 +59,7 @@
               "unsafe_regexp": false,
               "unsafe_undefined": false,
               "unused": true,
-              "const_to_let": false,
+              "const_to_let": true,
               "pristine_globals": true
           },
           "mangle": {
