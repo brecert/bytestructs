@@ -8,6 +8,10 @@ I'm not quite sure what I want the functionality to be.
 
 Right now it's in-between a javascript friendly `struct` and a way to define actual bytestructs with types, feedback would be appreciated.
 
+If you want a similar feature to `struct` without the additional features, `bytestruct.mini` (0.5kb gzipped) should fill that need.  
+
+## Examples
+
 ```js
 import { assertEquals } from "https://deno.land/std@0.174.0/testing/asserts.ts";
 import {
@@ -52,5 +56,32 @@ assertEquals(
 assertEquals(
   readStructFrom(view, Triangle, 0),
   triangle,
+);
+```
+
+`bytestruct.mini` doesn't allow for naming fields or advanced interpolation, and has a different api at the moment.
+
+```js
+import { bytes } from "./bytestruct.mini.js";
+
+const struct = bytes`be s64 u32 u8*2 b3`;
+
+assertEquals(struct.byteSize(), 17);
+
+const array = new Uint8Array(struct.byteSize());
+
+assertEquals(
+  struct.writeBytes([10n, 2, 3, 4, 5, 6, 7], array.buffer),
+  17,
+);
+
+assertEquals(
+  array,
+  new Uint8Array([0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 2, 3, 4, 5, 6, 7]),
+);
+
+assertEquals(
+  struct.readBytes(array.buffer),
+  [10n, 2, 3, 4, 5, 6, 7],
 );
 ```

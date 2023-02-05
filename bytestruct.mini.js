@@ -72,7 +72,7 @@ export function bytes(strings, ...values) {
         } else {
           const byteSize = size / 8
           // we use the regex here to save on bytes instead of (type === 's' || type === 'u')
-          const fullName = size === 64 && /[su]/.test(type)
+          const fullName = size == 64 && /[su]/.test(type)
             ? `Big${FullName[type]}`
             : FullName[type]
 
@@ -94,12 +94,12 @@ export function bytes(strings, ...values) {
       for (const [type, size, repeat, littleEndian] of fields) {
         if (type === 'b') {
           const bytes = values.slice(bytePos, bytePos + size * repeat)
-          new Uint8Array(buffer, bytePos).set(bytes)
+          new Uint8Array(buffer, viewPos).set(bytes)
           bytePos += size * repeat
           viewPos += size * repeat
         } else {
           const byteSize = size / 8
-          const fullName = size === 64 && /[su]/.test(type)
+          const fullName = size == 64 && /[su]/.test(type)
             ? `Big${FullName[type]}`
             : FullName[type]
 

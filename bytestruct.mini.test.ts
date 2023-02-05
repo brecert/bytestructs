@@ -80,3 +80,26 @@ Deno.test("bytes interpolation", () => {
     values,
   );
 });
+
+Deno.test("readme bytestruct mini", () => {
+  const struct = bytes`be s64 u32 u8*2 b3`;
+
+  assertEquals(struct.byteSize(), 17);
+
+  const array = new Uint8Array(struct.byteSize());
+
+  assertEquals(
+    struct.writeBytes([10n, 2, 3, 4, 5, 6, 7], array.buffer),
+    17,
+  );
+
+  assertEquals(
+    array,
+    new Uint8Array([0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 2, 3, 4, 5, 6, 7]),
+  );
+
+  assertEquals(
+    struct.readBytes(array.buffer),
+    [10n, 2, 3, 4, 5, 6, 7],
+  );
+});
