@@ -3,12 +3,13 @@ import { sizeOf } from "../../bytestruct.js";
 import * as stl from "./stl.ts";
 
 const textDecoder = new TextDecoder();
-// todo: change this
-const modelData = await Deno.readFile("./examples/stl/cube.stl");
-const dataView = new DataView(modelData.buffer);
+const dataView = () => {
+  const modelData = Deno.readFileSync("./examples/stl/cube.stl");
+  return new DataView(modelData.buffer);
+};
 
 Deno.test("readSTL", () => {
-  const model = stl.readSTL(dataView);
+  const model = stl.readSTL(dataView());
 
   assertEquals(
     textDecoder.decode(model.header.header),
@@ -22,7 +23,7 @@ Deno.test("readSTL", () => {
 });
 
 Deno.test("writeSTL", () => {
-  const originalModel = stl.readSTL(dataView);
+  const originalModel = stl.readSTL(dataView());
 
   const buffer = new ArrayBuffer(
     sizeOf(stl.BinarySTLHeader) +
