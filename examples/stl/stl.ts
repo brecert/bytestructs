@@ -13,7 +13,7 @@ export interface Vector3f {
 
 export interface Triangle {
   normal: Vector3f;
-  points: [Vector3f, Vector3f, Vector3f];
+  vertices: [Vector3f, Vector3f, Vector3f];
   flags: number;
 }
 
@@ -43,7 +43,7 @@ export function readSTL(view: DataView) {
   let pos = 0;
   const header = readStructFrom(view, BinarySTLHeader, pos);
   pos += sizeOf(BinarySTLHeader);
-  const triangles = [];
+  const triangles: Triangle[] = [];
 
   for (let i = 0; i < header.triangleCount; i++) {
     triangles.push(readStructFrom(view, Triangle, pos));

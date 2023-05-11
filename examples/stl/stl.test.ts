@@ -20,6 +20,19 @@ Deno.test("readSTL", () => {
     model.triangles.length,
     12,
   );
+
+  assertEquals(
+    model.triangles[0],
+    {
+      flags: 0,
+      normal: { x: -1, y: 0, z: 0 },
+      vertices: [
+        { x: -1, y: -1, z: -1 },
+        { x: -1, y: -1, z: 1 },
+        { x: -1, y: 1, z: 1 },
+      ],
+    },
+  );
 });
 
 Deno.test("writeSTL", () => {
