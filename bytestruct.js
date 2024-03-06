@@ -11,7 +11,8 @@ const
   DEBUG = globalThis.__DEBUG__ ?? true
 
 const
-  TOKENS = /(le|be)|(byte)|(?:([fsu])(8|16|32|64))|(\d+)|(\w+):|(\s+)|(.)/g
+  TOKENS = /(le|be)|(byte)|(?:([fsu])(8|16|32|64))|(\d+)|(\w+):|(\s+)|(.)/g,
+  TYPE_NAME = /([fsu])(8|16|32|64)/
 
 const
   TokenEndianness = 1,
@@ -52,19 +53,23 @@ export function bytes(strings, ...values) {
     ({
       [ModeTypes]: () => {
         if (DEBUG) {
-          if (!token && !Array.isArray(value)) {
+          if (!token && !Array.isArray(value) && !(typeof value == 'string' && TYPE_NAME.test(value))) {
             throw new Error(`Invalid interpolation for ${value}`)
           }
           if (littleEndian == null && !token[TokenEndianness]) {
-            throw new Error(`Pattern much start by declaring endianness with 'le' or 'be'`)
+            throw new Error(`Pattern must start by declaring endianness with 'le' or 'be'`)
           }
-          if (label != null && !Array.isArray(value) && !token[TokenPartTypeName] && !token[TokenByte]) {
+          if (token && label != null && !Array.isArray(value) && !token[TokenPartTypeName] && !token[TokenByte]) {
             throw new Error(`Label '${label}' requires a type after it`)
           }
         }
 
         if (Array.isArray(value)) {
           parts.push({ name: value, label })
+          label = undefined
+        } else if (typeof value == 'string') {
+          let match = TYPE_NAME.exec(value)
+          parts.push({ name: match[1], size: match[2], label })
           label = undefined
         } else if (token[TokenEndianness]) {
           littleEndian = token[TokenEndianness] === 'le'
