@@ -53,10 +53,10 @@ export function bytes(strings, ...values) {
     ({
       [ModeTypes]: () => {
         if (DEBUG) {
-          if (!token && !Array.isArray(value) && !(typeof value == 'string' && TYPE_NAME.test(value))) {
+          if (!token && !Array.isArray(value) && value !== null && value !== false && !(typeof value == 'string' && TYPE_NAME.test(value))) {
             throw new Error(`Invalid interpolation for ${value}`)
           }
-          if (littleEndian == null && !token[TokenEndianness]) {
+          if (littleEndian == null && !token?.[TokenEndianness]) {
             throw new Error(`Pattern must start by declaring endianness with 'le' or 'be'`)
           }
           if (token && label != null && !Array.isArray(value) && !token[TokenPartTypeName] && !token[TokenByte]) {
@@ -64,23 +64,30 @@ export function bytes(strings, ...values) {
           }
         }
 
-        if (Array.isArray(value)) {
-          parts.push({ name: value, label })
+        if (value === null || value === false) {
           label = undefined
-        } else if (typeof value == 'string') {
+        }
+        else if (Array.isArray(value)) {
+          parts.push({ name: value, label, littleEndian })
+          label = undefined
+        }
+        else if (typeof value == 'string') {
           let match = TYPE_NAME.exec(value)
-          parts.push({ name: match[1], size: match[2], label })
+          parts.push({ name: match[1], size: match[2], label, littleEndian })
           label = undefined
-        } else if (token[TokenEndianness]) {
+        }
+        else if (token[TokenEndianness]) {
           littleEndian = token[TokenEndianness] === 'le'
-        } else if (token[TokenByte]) {
+        }
+        else if (token[TokenByte]) {
           let part = { name: 'b' }
           if (label != null) {
             part.label = label
             label = undefined
           }
           parts.push(part)
-        } else if (token[TokenPartTypeName]) {
+        }
+        else if (token[TokenPartTypeName]) {
           let name = token[TokenPartTypeName]
           let size = token[TokenPartTypeSize]
 
@@ -90,11 +97,14 @@ export function bytes(strings, ...values) {
             label = undefined
           }
           parts.push(part)
-        } else if (token[TokenLabel]) {
+        }
+        else if (token[TokenLabel]) {
           label = token[TokenLabel]
-        } else if (token[TokenSymbol] === '*') {
+        }
+        else if (token[TokenSymbol] === '*') {
           mode = ModeRepeat
-        } else {
+        }
+        else {
           if (DEBUG) throw new Error(`Invalid token for '${token[0]}' for ModeTypes`)
         }
       },
@@ -154,7 +164,7 @@ export function writeStructInto(view, fields, struct, offset) {
       ? (value) => pos += writeStructInto(view, type, value, pos)
       : (value) => {
         const byteSize = ByteSizes[size ?? type]
-        const fullName = (type === 's' || type === 'u') && size === 64
+        const fullName = (type === 's' || type === 'u') && size === '64'
           ? `Big${FullName[type]}`
           : FullName[type]
 
@@ -162,6 +172,7 @@ export function writeStructInto(view, fields, struct, offset) {
         pos += byteSize
       }
 
+    // console.log(fields, struct, offset)
     const value = struct[label]
     if (repeat) {
       for (let i = 0; i < repeat; i++) {
@@ -180,20 +191,19 @@ export function readStructFrom(view, fields, offset) {
 
   // todo: test performance
   for (const { name: type, size, littleEndian, repeat, label } of fields) {
-    const byteSize = ByteSizes[size ?? type]
+    const byteSize = ByteSizes[size ?? type] ?? sizeOf(type)
 
     if (DEBUG && label in struct) {
       console.warn(`There are duplicate fields for '${label}' in ${struct}`)
     }
 
     if (!label) {
-      pos += byteSize
+      pos += byteSize * (repeat ?? 1)
       continue
     }
 
     // todo: simplify
     if (Array.isArray(type)) {
-      const byteSize = sizeOf(type)
       if (repeat) {
         const structs = []
         for (let i = 0; i < repeat; i++) {
@@ -214,7 +224,7 @@ export function readStructFrom(view, fields, offset) {
       struct[label] = uint8.slice(pos, pos + size)
       pos += size
     } else {
-      const fullName = (type === 's' || type === 'u') && size === 64
+      const fullName = (type === 's' || type === 'u') && size === '64'
         ? `Big${FullName[type]}`
         : FullName[type]
 
@@ -255,7 +265,7 @@ export function readBytesFrom(view, fields, offset) {
     }
 
     const byteSize = ByteSizes[size]
-    const fullName = (name === 's' || name === 'u') && size === 64
+    const fullName = (name === 's' || name === 'u') && size === '64'
       ? `Big${FullName[name]}`
       : FullName[name]
 
@@ -301,7 +311,7 @@ export function writeBytesInto(view, fields, bytes, offset) {
     }
 
     const byteSize = ByteSizes[size]
-    const fullName = (name === 's' || name === 'u') && size === 64
+    const fullName = (name === 's' || name === 'u') && size === '64'
       ? `Big${FullName[name]}`
       : FullName[name]
 
